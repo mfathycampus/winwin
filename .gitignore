@@ -1,0 +1,18 @@
+node_modules
+dist
+.next
+.expo
+.env
+.env.local
+.env.production
+*.env.local
+*.env.production
+.turbo
+coverage
+*.log
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+
+# Mobile app — has its own git repo + deployed via EAS, not needed for API deploy
+apps/

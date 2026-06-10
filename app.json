@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "51e828b6-49cb-4f07-8406-2194992c3123"
+      }
+    },
+    "owner": "mfathyy",
+    "android": {
+      "package": "com.mfathyy.winwin"
+    }
+  }
+}

@@ -1,0 +1,420 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+
+model User {
+  id          String   @id @default(cuid())
+  phone       String   @unique
+  name        String
+  email       String?  @unique
+  avatarUrl   String?
+  bio         String?
+  isVerified  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  socialAccounts    UserSocialAccount[]
+  credits           UserCredit?
+  creditTxns        UserCreditTransaction[]
+  posts             UserPost[]
+  sessionParticipations SessionParticipant[]
+  brandManagers     BrandManager[]
+  otps              Otp[]
+  referralsSent     Referral[]            @relation("referrer")
+  referralsReceived Referral[]            @relation("referred")
+  refreshTokens     RefreshToken[]
+
+  @@map("users")
+}
+
+model Otp {
+  id        String   @id @default(cuid())
+  userId    String?
+  phone     String
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("otps")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+enum SocialPlatform {
+  SNAPCHAT
+  TIKTOK
+  INSTAGRAM
+  X
+}
+
+model UserSocialAccount {
+  id               String         @id @default(cuid())
+  userId           String
+  platform         SocialPlatform
+  platformUserId   String
+  username         String
+  followersCount   Int            @default(0)
+  engagementRate   Float          @default(0)
+  accessToken      String?
+  refreshToken     String?
+  tokenExpiresAt   DateTime?
+  verifiedAt       DateTime?
+  isActive         Boolean        @default(true)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@map("user_social_accounts")
+}
+
+model UserCredit {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  balance       Float    @default(0)
+  lifetimeEarned Float   @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_credits")
+}
+
+enum CreditTransactionType {
+  EARN
+  REDEEM
+  EXPIRE
+  BONUS
+  REFERRAL
+}
+
+model UserCreditTransaction {
+  id          String                @id @default(cuid())
+  userId      String
+  amount      Float
+  type        CreditTransactionType
+  referenceId String?
+  description String?
+  expiresAt   DateTime?
+  createdAt   DateTime              @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_credit_transactions")
+}
+
+// ─── Companies & Brands ───────────────────────────────────────────────────────
+
+enum CompanyPlan {
+  STARTER
+  GROWTH
+  PRO
+  ENTERPRISE
+}
+
+model Company {
+  id                String      @id @default(cuid())
+  name              String
+  crNumber          String?     @unique
+  contactEmail      String
+  contactPhone      String
+  plan              CompanyPlan @default(STARTER)
+  subscriptionStart DateTime?
+  subscriptionEnd   DateTime?
+  isActive          Boolean     @default(true)
+  isApproved        Boolean     @default(false)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  brands        Brand[]
+  subscriptions Subscription[]
+  invoices      Invoice[]
+
+  @@map("companies")
+}
+
+model Brand {
+  id            String   @id @default(cuid())
+  companyId     String
+  name          String
+  sector        String?
+  emoji         String?
+  color         String?
+  logoUrl       String?
+  monthlyBudget Float    @default(0)
+  spentBudget   Float    @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  managers      BrandManager[]
+  campaigns     Campaign[]
+
+  @@map("brands")
+}
+
+enum BrandManagerRole {
+  OWNER
+  MANAGER
+  VIEWER
+}
+
+model BrandManager {
+  id       String           @id @default(cuid())
+  brandId  String
+  userId   String
+  role     BrandManagerRole @default(MANAGER)
+  createdAt DateTime        @default(now())
+
+  brand Brand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, userId])
+  @@map("brand_managers")
+}
+
+// ─── Campaigns & Ads ──────────────────────────────────────────────────────────
+
+enum ContentType {
+  IMAGE
+  VIDEO
+  BOTH
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+model Campaign {
+  id            String         @id @default(cuid())
+  brandId       String
+  title         String
+  description   String?
+  contentType   ContentType    @default(BOTH)
+  startDate     DateTime
+  endDate       DateTime
+  maxCreditPct  Float          @default(0.5)
+  totalBudget   Float
+  spentBudget   Float          @default(0)
+  status        CampaignStatus @default(DRAFT)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  brand        Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  adContent    AdContent[]
+  posts        UserPost[]
+  primeSessions PrimeSession[]
+
+  @@map("campaigns")
+}
+
+model AdContent {
+  id              String           @id @default(cuid())
+  campaignId      String
+  mediaUrl        String
+  captionTemplate String?
+  hashtags        String[]
+  allowedPlatforms SocialPlatform[]
+  createdAt       DateTime         @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("ad_content")
+}
+
+// ─── Posts & Verification ─────────────────────────────────────────────────────
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  EXPIRED
+}
+
+model UserPost {
+  id                  String             @id @default(cuid())
+  userId              String
+  campaignId          String
+  platform            SocialPlatform
+  postUrl             String?
+  postIdOnPlatform    String?
+  postedAt            DateTime           @default(now())
+  verifiedAt          DateTime?
+  verificationStatus  VerificationStatus @default(PENDING)
+  creditAmount        Float              @default(0)
+  bonusAmount         Float              @default(0)
+  creditReleasedAt    DateTime?
+  deletedDetectedAt   DateTime?
+  createdAt           DateTime           @default(now())
+
+  user              User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign          Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sessionParticipant SessionParticipant?
+  commissions       Commission[]
+
+  @@map("user_posts")
+}
+
+// ─── Prime Time Sessions ──────────────────────────────────────────────────────
+
+enum TimeSlot {
+  EVENING
+  LUNCH
+  MORNING
+  RAMADAN
+  CUSTOM
+}
+
+enum SessionStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
+  CANCELLED
+}
+
+model PrimeSession {
+  id                String        @id @default(cuid())
+  brandId           String
+  campaignId        String
+  timeSlot          TimeSlot      @default(EVENING)
+  startsAt          DateTime
+  endsAt            DateTime
+  durationMinutes   Int
+  maxSeats          Int
+  seatsTaken        Int           @default(0)
+  bonusBudget       Float
+  bonusPerUser      Float
+  platformMultiplier Float        @default(1.0)
+  status            SessionStatus @default(SCHEDULED)
+  createdAt         DateTime      @default(now())
+
+  campaign     Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  participants SessionParticipant[]
+  commissions  Commission[]
+
+  @@map("prime_sessions")
+}
+
+model SessionParticipant {
+  id          String   @id @default(cuid())
+  sessionId   String
+  userId      String
+  postId      String?  @unique
+  joinedAt    DateTime @default(now())
+  bonusEarned Float    @default(0)
+
+  session PrimeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    UserPost?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@unique([sessionId, userId])
+  @@map("session_participants")
+}
+
+// ─── Subscriptions & Billing ──────────────────────────────────────────────────
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  TRIAL
+}
+
+model Subscription {
+  id           String             @id @default(cuid())
+  companyId    String
+  plan         CompanyPlan
+  priceSar     Float
+  billingCycle String             @default("monthly")
+  startedAt    DateTime
+  endsAt       DateTime
+  status       SubscriptionStatus @default(ACTIVE)
+  createdAt    DateTime           @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id         String    @id @default(cuid())
+  companyId  String
+  amount     Float
+  taxAmount  Float     @default(0)
+  itemsJson  Json
+  issuedAt   DateTime  @default(now())
+  paidAt     DateTime?
+  status     String    @default("pending")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("invoices")
+}
+
+enum CommissionType {
+  CREDIT_COMMISSION
+  SESSION_COMMISSION
+}
+
+model Commission {
+  id        String         @id @default(cuid())
+  postId    String?
+  sessionId String?
+  amount    Float
+  type      CommissionType
+  createdAt DateTime       @default(now())
+
+  post    UserPost?    @relation(fields: [postId], references: [id], onDelete: SetNull)
+  session PrimeSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@map("commissions")
+}
+
+// ─── Referrals ────────────────────────────────────────────────────────────────
+
+enum ReferralStatus {
+  PENDING
+  PAID
+}
+
+model Referral {
+  id             String         @id @default(cuid())
+  referrerUserId String
+  referredUserId String
+  bonusAmount    Float          @default(10)
+  status         ReferralStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+
+  referrer User @relation("referrer", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referred User @relation("referred", fields: [referredUserId], references: [id], onDelete: Cascade)
+
+  @@unique([referredUserId])
+  @@map("referrals")
+}

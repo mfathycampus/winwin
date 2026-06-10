@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@winwin/shared": ["../../packages/shared/src/index.ts"],
+      "@winwin/db": ["../../packages/db/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}
