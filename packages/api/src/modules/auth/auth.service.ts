@@ -10,6 +10,12 @@ import type { AuthTokens, JwtPayload } from '@winwin/shared';
 
 const OTP_TTL = parseInt(env.OTP_EXPIRY_MINUTES) * 60;
 
+// Normalize a phone to a canonical form: keep only digits and a leading +.
+// Strips spaces, dashes, and invisible/RTL characters that sneak in from Arabic keyboards.
+export function normalizePhone(phone: string): string {
+  return (phone || '').replace(/[^\d+]/g, '');
+}
+
 // ─── OTP ──────────────────────────────────────────────────────────────────────
 
 function generateOtp(): string {
@@ -25,7 +31,8 @@ async function sendOtpViaSms(phone: string, code: string) {
   // TODO: integrate Unifonic or Twilio
 }
 
-export async function sendOtp(phone: string) {
+export async function sendOtp(phoneInput: string) {
+  const phone = normalizePhone(phoneInput);
   const code = generateOtp();
 
   await redis.setex(`otp:${phone}`, OTP_TTL, code);
@@ -46,13 +53,14 @@ export async function sendOtp(phone: string) {
 
 // Determine a user's role: admin (env allowlist) > brand_manager (has a brand) > user
 async function resolveRole(userId: string, phone: string): Promise<'user' | 'brand_manager' | 'admin'> {
-  const adminPhones = env.ADMIN_PHONES.split(',').map((p) => p.trim()).filter(Boolean);
-  if (adminPhones.includes(phone)) return 'admin';
+  const adminPhones = env.ADMIN_PHONES.split(',').map((p) => normalizePhone(p)).filter(Boolean);
+  if (adminPhones.includes(normalizePhone(phone))) return 'admin';
   const managed = await prisma.brandManager.count({ where: { userId } });
   return managed > 0 ? 'brand_manager' : 'user';
 }
 
-export async function verifyOtp(phone: string, code: string): Promise<AuthTokens & { isNew: boolean; role: string }> {
+export async function verifyOtp(phoneInput: string, code: string): Promise<AuthTokens & { isNew: boolean; role: string }> {
+  const phone = normalizePhone(phoneInput);
   const stored = await redis.get(`otp:${phone}`);
   if (!stored || stored !== code) {
     throw new AppError('رمز التحقق غير صحيح أو منتهي الصلاحية', 400, 'INVALID_OTP');

@@ -8,6 +8,7 @@ import api from '../../../../lib/api';
 import { MetricCard } from '../../../../components/dashboard/MetricCard';
 import { AddCampaignModal } from '../../../../components/dashboard/AddCampaignModal';
 import { AddSessionModal } from '../../../../components/dashboard/AddSessionModal';
+import { useMe } from '../../../../lib/useMe';
 import { formatSAR, formatNumber } from '../../../../lib/utils';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -23,8 +24,20 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 export default function BrandDashboardPage() {
   const { brandId } = useParams<{ brandId: string }>();
+  const { isAdmin } = useMe();
   const [showCampaign, setShowCampaign] = useState(false);
   const [showSession, setShowSession] = useState(false);
+
+  async function assignOwner() {
+    const phone = window.prompt('رقم جوال صاحب البراند (بصيغة +966XXXXXXXXX):', '+966');
+    if (!phone) return;
+    try {
+      await api.post(`/brands/${brandId}/owner`, { phone });
+      alert('تم تعيين صاحب البراند ✓ — يدخل برقمه + الرمز 123456 ليرى برانده');
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'تعذّر التعيين');
+    }
+  }
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['brand-dashboard', brandId],
@@ -80,6 +93,11 @@ export default function BrandDashboardPage() {
           </div>
         </div>
         <div className="flex gap-3">
+          {isAdmin && (
+            <button onClick={assignOwner} className="btn-secondary">
+              👤 تعيين صاحب البراند
+            </button>
+          )}
           <button onClick={() => setShowSession(true)} className="btn-secondary">
             📺 جلسة بث مباشر
           </button>

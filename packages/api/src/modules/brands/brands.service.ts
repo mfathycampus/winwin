@@ -1,5 +1,6 @@
 import { prisma } from '@winwin/db';
 import { AppError } from '../../common/middleware/errorHandler';
+import { normalizePhone } from '../auth/auth.service';
 
 export async function getBrandsByCompany(companyId: string) {
   return prisma.brand.findMany({
@@ -21,6 +22,29 @@ const brandListInclude = {
   },
   _count: { select: { campaigns: true } },
 };
+
+// Assign (or change) the owner of an existing brand by phone. Admin action.
+export async function assignBrandOwner(brandId: string, ownerPhoneInput: string) {
+  const brand = await prisma.brand.findUnique({ where: { id: brandId } });
+  if (!brand) throw new AppError('البراند غير موجود', 404);
+
+  const phone = normalizePhone(ownerPhoneInput);
+  if (!phone) throw new AppError('رقم الجوال مطلوب', 400);
+
+  let owner = await prisma.user.findUnique({ where: { phone } });
+  if (!owner) {
+    owner = await prisma.user.create({ data: { phone, name: brand.name } });
+    await prisma.userCredit.create({ data: { userId: owner.id } });
+  }
+
+  await prisma.brandManager.upsert({
+    where: { brandId_userId: { brandId, userId: owner.id } },
+    update: { role: 'OWNER' },
+    create: { brandId, userId: owner.id, role: 'OWNER' },
+  });
+
+  return { brandId, ownerPhone: phone, ownerId: owner.id };
+}
 
 // All campaigns of a single brand (for the brand dashboard pages).
 export async function getBrandCampaigns(brandId: string) {
@@ -86,8 +110,8 @@ export async function createBrandByAdmin(data: {
   });
 
   // Assign an owner account (creates the user if they don't exist yet)
-  if (data.ownerPhone && data.ownerPhone.trim()) {
-    const phone = data.ownerPhone.trim();
+  if (data.ownerPhone && normalizePhone(data.ownerPhone)) {
+    const phone = normalizePhone(data.ownerPhone);
     let owner = await prisma.user.findUnique({ where: { phone } });
     if (!owner) {
       owner = await prisma.user.create({ data: { phone, name: data.name } });
