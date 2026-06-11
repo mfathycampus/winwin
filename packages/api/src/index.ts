@@ -30,16 +30,9 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow all localhost origins in development
-      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-        return callback(null, true);
-      }
-      if ([env.FRONTEND_URL, env.ADMIN_URL].includes(origin)) {
-        return callback(null, true);
-      }
-      callback(new Error('Not allowed by CORS'));
-    },
+    // Token-based API (Authorization header, no cookies) → safe to reflect any origin.
+    // Allows the mobile app (no origin), the Vercel web dashboard, and local dev.
+    origin: true,
     credentials: true,
   }),
 );
