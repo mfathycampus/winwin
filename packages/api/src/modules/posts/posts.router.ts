@@ -19,4 +19,10 @@ router.get('/', async (req, res) => {
   res.json({ success: true, data: result });
 });
 
+// Dashboard posts log — scoped by role (admin: all, brand manager: their brands)
+router.get('/managed', async (req, res) => {
+  const data = await postsService.getManagedPosts(req.user!.sub, req.user!.role);
+  res.json({ success: true, data });
+});
+
 export { router as postsRouter };

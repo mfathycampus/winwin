@@ -181,6 +181,41 @@ export async function releaseCredit(postId: string) {
   logger.info(`Credit released: ${userCredit} SAR to user ${post.userId} for post ${postId}`);
 }
 
+// Posts log for the dashboard, scoped by role:
+// admin → all posts; brand manager → only posts on their brands' campaigns.
+export async function getManagedPosts(userId: string, role: string) {
+  const where: any =
+    role === 'admin'
+      ? {}
+      : { campaign: { brand: { managers: { some: { userId } } } } };
+
+  const posts = await prisma.userPost.findMany({
+    where,
+    include: {
+      user: { select: { name: true, phone: true } },
+      campaign: {
+        select: { title: true, brand: { select: { name: true, emoji: true } } },
+      },
+    },
+    orderBy: { postedAt: 'desc' },
+    take: 200,
+  });
+
+  return posts.map((p) => ({
+    id: p.id,
+    userName: p.user.name || 'مستخدم',
+    userPhone: p.user.phone,
+    platform: p.platform,
+    brandName: p.campaign.brand.name,
+    brandEmoji: p.campaign.brand.emoji,
+    campaignTitle: p.campaign.title,
+    status: p.verificationStatus,
+    creditAmount: p.creditAmount,
+    bonusAmount: p.bonusAmount,
+    postedAt: p.postedAt,
+  }));
+}
+
 export async function getUserPosts(userId: string, page = 1, limit = 20) {
   const skip = (page - 1) * limit;
   const [items, total] = await Promise.all([
