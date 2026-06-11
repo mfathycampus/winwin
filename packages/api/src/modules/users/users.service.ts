@@ -1,6 +1,6 @@
 import { prisma } from '@winwin/db';
 import { AppError } from '../../common/middleware/errorHandler';
-import { deleteCache } from '../../config/redis';
+import { deleteCache, deleteCacheByPattern } from '../../config/redis';
 
 export async function getProfile(userId: string) {
   const user = await prisma.user.findUnique({
@@ -56,6 +56,8 @@ export async function connectSocialAccount(userId: string, data: {
       verifiedAt: new Date(),
     },
   });
+  // Bust the user's home-feed cache so the new follower count reflects in credits immediately
+  await deleteCacheByPattern(`feed:${userId}:*`);
   return account;
 }
 
