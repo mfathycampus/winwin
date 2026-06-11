@@ -19,13 +19,9 @@ export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const [b, c] = await Promise.all([api.get('/brands'), api.get('/campaigns/managed')]);
-        setBrands(b.data.data || []);
-        setCampaigns(c.data.data || []);
-      } catch { /* not logged in */ }
-    })();
+    // Fetch independently so one failing call doesn't blank the whole page
+    api.get('/brands').then((r) => setBrands(r.data.data || [])).catch(() => {});
+    api.get('/campaigns/managed').then((r) => setCampaigns(r.data.data || [])).catch(() => {});
   }, []);
 
   const activeCampaigns = campaigns.filter((c) => c.status === 'ACTIVE').length;

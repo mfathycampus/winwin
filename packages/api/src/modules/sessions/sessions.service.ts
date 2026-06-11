@@ -36,23 +36,27 @@ export async function createSession(brandId: string, data: {
 }
 
 // Dashboard list, scoped by role: admin → all sessions; brand manager → only their brands'.
+// Note: PrimeSession links to a brand only through its campaign.
 export async function getManagedSessions(userId: string, role: string) {
   const where: any =
-    role === 'admin' ? {} : { brand: { managers: { some: { userId } } } };
+    role === 'admin'
+      ? {}
+      : { campaign: { brand: { managers: { some: { userId } } } } };
 
   const sessions = await prisma.primeSession.findMany({
     where,
     include: {
-      brand: { select: { name: true, emoji: true, color: true } },
-      campaign: { select: { title: true } },
+      campaign: {
+        select: { title: true, brand: { select: { name: true, emoji: true, color: true } } },
+      },
     },
     orderBy: { startsAt: 'desc' },
   });
 
   return sessions.map((s) => ({
     id: s.id,
-    brandName: s.brand.name,
-    brandEmoji: s.brand.emoji,
+    brandName: s.campaign.brand.name,
+    brandEmoji: s.campaign.brand.emoji,
     campaignTitle: s.campaign.title,
     timeSlot: s.timeSlot,
     startsAt: s.startsAt,
