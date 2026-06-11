@@ -14,5 +14,5 @@ coverage
 Thumbs.db
 *.tsbuildinfo
 
-# Mobile app — has its own git repo + deployed via EAS, not needed for API deploy
-apps/
+# Mobile app — has its own git repo + deployed via EAS, not part of this repo
+apps/mobile/
