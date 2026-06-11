@@ -27,7 +27,8 @@ services:
       --workspace=@winwin/db
       --workspace=@winwin/shared &&
       npx prisma generate --schema=packages/db/prisma/schema.prisma &&
-      npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma
+      npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma &&
+      npx tsx packages/db/prisma/seed.ts
     startCommand: npx tsx packages/api/src/index.ts
     healthCheckPath: /health
     envVars:
