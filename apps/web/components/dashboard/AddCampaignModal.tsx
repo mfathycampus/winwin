@@ -17,26 +17,21 @@ const CONTENT_TYPES = [
   { key: 'BOTH',  label: '🖼️🎬 صورة وفيديو' },
 ];
 
+interface BrandOption { id: string; name: string; emoji?: string }
+
 interface Props {
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
-  // The brand the campaign belongs to. Defaults to the seeded demo brand.
-  brandId?: string;
-  brandName?: string;
+  brands: BrandOption[];
 }
 
-export function AddCampaignModal({
-  open,
-  onClose,
-  onCreated,
-  brandId = 'brand_almarai_001',
-  brandName = 'Almarai Juice 🥤',
-}: Props) {
+export function AddCampaignModal({ open, onClose, onCreated, brands }: Props) {
   const today = new Date().toISOString().slice(0, 10);
   const in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 
   const [form, setForm] = useState({
+    brandId: '',
     title: '',
     description: '',
     contentType: 'IMAGE',
@@ -62,8 +57,11 @@ export function AddCampaignModal({
     }));
   }
 
+  const brandId = form.brandId || brands[0]?.id || '';
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!brandId) { setError('اختر البراند أولاً'); return; }
     if (form.title.trim().length < 3) { setError('عنوان الحملة 3 أحرف على الأقل'); return; }
     if (form.platforms.length === 0) { setError('اختر منصة واحدة على الأقل'); return; }
     if (!form.totalBudget || Number(form.totalBudget) < 500) { setError('الميزانية 500 ريال على الأقل'); return; }
@@ -104,8 +102,16 @@ export function AddCampaignModal({
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm text-right">{error}</div>
         )}
 
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-right text-sm text-blue-800">
-          البراند: <span className="font-bold">{brandName}</span>
+        {/* Brand selector */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2 text-right">البراند *</label>
+          <select value={brandId} onChange={(e) => set('brandId', e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-right bg-gray-50 focus:outline-none focus:ring-2">
+            {brands.length === 0 && <option value="">لا توجد براندات</option>}
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>{(b.emoji || '🏷️') + ' ' + b.name}</option>
+            ))}
+          </select>
         </div>
 
         {/* Title */}

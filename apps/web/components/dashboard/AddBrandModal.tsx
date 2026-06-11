@@ -12,12 +12,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onCreated: (brand: any) => void;
-  companyId?: string;
 }
 
-export function AddBrandModal({ open, onClose, onCreated, companyId = 'company_demo' }: Props) {
+export function AddBrandModal({ open, onClose, onCreated }: Props) {
   const [form, setForm] = useState({
-    name: '', sector: '', emoji: '🏷️', color: '#1B3A7A', monthlyBudget: '',
+    name: '', sector: '', emoji: '🏷️', color: '#1B3A7A', monthlyBudget: '', ownerPhone: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
@@ -33,18 +32,22 @@ export function AddBrandModal({ open, onClose, onCreated, companyId = 'company_d
     if (!form.monthlyBudget || isNaN(Number(form.monthlyBudget))) {
       setError('أدخل ميزانية شهرية صحيحة'); return;
     }
+    if (form.ownerPhone && !/^\+966\d{9}$/.test(form.ownerPhone.trim())) {
+      setError('رقم صاحب البراند يجب أن يكون بصيغة +966XXXXXXXXX'); return;
+    }
 
     setLoading(true); setError('');
     try {
-      const { data } = await api.post(`/brands/company/${companyId}`, {
+      const { data } = await api.post('/brands', {
         name: form.name.trim(),
         sector: form.sector,
         emoji: form.emoji,
         color: form.color,
         monthlyBudget: Number(form.monthlyBudget),
+        ownerPhone: form.ownerPhone.trim() || undefined,
       });
       onCreated(data.data);
-      setForm({ name: '', sector: '', emoji: '🏷️', color: '#1B3A7A', monthlyBudget: '' });
+      setForm({ name: '', sector: '', emoji: '🏷️', color: '#1B3A7A', monthlyBudget: '', ownerPhone: '' });
       onClose();
     } catch (e: any) {
       setError(e.response?.data?.message || 'فشل إنشاء البراند');
@@ -122,6 +125,19 @@ export function AddBrandModal({ open, onClose, onCreated, companyId = 'company_d
             placeholder="50000"
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-right bg-gray-50 focus:outline-none focus:ring-2"
           />
+        </div>
+
+        {/* Owner phone */}
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2 text-right">رقم جوال صاحب البراند (اختياري)</label>
+          <input
+            value={form.ownerPhone} onChange={e => set('ownerPhone', e.target.value)}
+            placeholder="+966512345678" dir="ltr"
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-left bg-gray-50 focus:outline-none focus:ring-2"
+          />
+          <p className="text-xs text-gray-400 mt-1 text-right">
+            عند تسجيل دخول هذا الرقم بالرمز 123456، يرى لوحة برانده الخاصة فقط وينشر منها.
+          </p>
         </div>
 
         {/* Preview */}

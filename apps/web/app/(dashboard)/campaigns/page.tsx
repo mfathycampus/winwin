@@ -20,6 +20,7 @@ interface FeedCampaign {
 
 export default function CampaignsPage() {
   const [campaigns, setCampaigns] = useState<FeedCampaign[]>([]);
+  const [brands, setBrands] = useState<{ id: string; name: string; emoji?: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -28,8 +29,12 @@ export default function CampaignsPage() {
     setLoading(true); setError('');
     try {
       // Same endpoint the mobile app reads → web & mobile stay in sync
-      const { data } = await api.get('/campaigns/feed');
-      setCampaigns(data.data || []);
+      const [feedRes, brandsRes] = await Promise.all([
+        api.get('/campaigns/feed'),
+        api.get('/brands'),
+      ]);
+      setCampaigns(feedRes.data.data || []);
+      setBrands(brandsRes.data.data || []);
     } catch (e: any) {
       setError(e.response?.data?.message || 'تعذّر تحميل الحملات. سجّل الدخول أولاً.');
     } finally {
@@ -90,6 +95,7 @@ export default function CampaignsPage() {
         open={showModal}
         onClose={() => setShowModal(false)}
         onCreated={load}
+        brands={brands}
       />
     </div>
   );
