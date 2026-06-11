@@ -158,7 +158,7 @@ export async function createCampaign(brandId: string, data: {
     throw new AppError('الميزانية غير كافية', 400, 'INSUFFICIENT_BUDGET');
   }
 
-  return prisma.campaign.create({
+  const campaign = await prisma.campaign.create({
     data: {
       brandId,
       title: data.title,
@@ -171,6 +171,22 @@ export async function createCampaign(brandId: string, data: {
       status: 'DRAFT',
     },
   });
+
+  // Create the ad content so the mobile app knows which platforms are allowed
+  // (drives the publish flow + credit calculation).
+  await prisma.adContent.create({
+    data: {
+      campaignId: campaign.id,
+      mediaUrl:
+        'https://placehold.co/1080x1080/1B3A7A/FFFFFF/png?text=' +
+        encodeURIComponent(data.title),
+      captionTemplate: data.description || `شارك حملة ${brand.name} 🎯`,
+      hashtags: [],
+      allowedPlatforms: data.allowedPlatforms as any,
+    },
+  });
+
+  return campaign;
 }
 
 export async function updateCampaignStatus(
