@@ -44,7 +44,15 @@ export async function sendOtp(phone: string) {
   return { message: 'تم إرسال رمز التحقق' };
 }
 
-export async function verifyOtp(phone: string, code: string): Promise<AuthTokens & { isNew: boolean }> {
+// Determine a user's role: admin (env allowlist) > brand_manager (has a brand) > user
+async function resolveRole(userId: string, phone: string): Promise<'user' | 'brand_manager' | 'admin'> {
+  const adminPhones = env.ADMIN_PHONES.split(',').map((p) => p.trim()).filter(Boolean);
+  if (adminPhones.includes(phone)) return 'admin';
+  const managed = await prisma.brandManager.count({ where: { userId } });
+  return managed > 0 ? 'brand_manager' : 'user';
+}
+
+export async function verifyOtp(phone: string, code: string): Promise<AuthTokens & { isNew: boolean; role: string }> {
   const stored = await redis.get(`otp:${phone}`);
   if (!stored || stored !== code) {
     throw new AppError('رمز التحقق غير صحيح أو منتهي الصلاحية', 400, 'INVALID_OTP');
@@ -64,17 +72,22 @@ export async function verifyOtp(phone: string, code: string): Promise<AuthTokens
 
   if (!user.isActive) throw new AppError('الحساب موقوف', 403, 'ACCOUNT_SUSPENDED');
 
-  const tokens = await generateTokens(user.id, user.phone);
-  return { ...tokens, isNew };
+  const role = await resolveRole(user.id, user.phone);
+  const tokens = await generateTokens(user.id, user.phone, role);
+  return { ...tokens, isNew, role };
 }
 
 // ─── Tokens ───────────────────────────────────────────────────────────────────
 
-async function generateTokens(userId: string, phone: string): Promise<AuthTokens> {
+async function generateTokens(
+  userId: string,
+  phone: string,
+  role: 'user' | 'brand_manager' | 'admin' = 'user',
+): Promise<AuthTokens> {
   const payload: Omit<JwtPayload, 'iat' | 'exp'> = {
     sub: userId,
     phone,
-    role: 'user',
+    role,
   };
 
   const accessToken = jwt.sign(payload, env.JWT_SECRET, {
@@ -106,7 +119,8 @@ export async function refreshTokens(token: string): Promise<AuthTokens> {
   // Rotate refresh token
   await prisma.refreshToken.delete({ where: { token } });
 
-  return generateTokens(stored.userId, stored.user.phone);
+  const role = await resolveRole(stored.userId, stored.user.phone);
+  return generateTokens(stored.userId, stored.user.phone, role);
 }
 
 export async function logout(refreshToken: string) {

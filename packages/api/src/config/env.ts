@@ -26,6 +26,8 @@ const envSchema = z.object({
   INSTAGRAM_CLIENT_SECRET: z.string().optional(),
   FRONTEND_URL: z.string().default('http://localhost:3000'),
   ADMIN_URL: z.string().default('http://localhost:3001'),
+  // Comma-separated phone numbers that get the platform ADMIN role on login.
+  ADMIN_PHONES: z.string().default(''),
   SMS_PROVIDER: z.enum(['twilio', 'unifonic', 'mock']).default('mock'),
   TWILIO_ACCOUNT_SID: z.string().optional(),
   TWILIO_AUTH_TOKEN: z.string().optional(),

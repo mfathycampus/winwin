@@ -8,7 +8,8 @@ router.use(authenticate);
 
 router.get('/me', async (req, res) => {
   const user = await usersService.getProfile(req.user!.sub);
-  res.json({ success: true, data: user });
+  // role comes from the verified JWT (admin / brand_manager / user)
+  res.json({ success: true, data: { ...user, role: req.user!.role } });
 });
 
 router.patch('/me', async (req, res) => {

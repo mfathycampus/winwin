@@ -8,6 +8,11 @@ export async function getProfile(userId: string) {
     include: {
       socialAccounts: { where: { isActive: true } },
       credits: true,
+      brandManagers: {
+        include: {
+          brand: { select: { id: true, name: true, emoji: true, color: true, sector: true, monthlyBudget: true, spentBudget: true } },
+        },
+      },
     },
   });
   if (!user) throw new AppError('المستخدم غير موجود', 404);

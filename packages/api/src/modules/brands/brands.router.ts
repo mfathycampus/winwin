@@ -1,9 +1,21 @@
 import { Router } from 'express';
-import { authenticate } from '../../common/guards/auth.guard';
+import { authenticate, requireRole } from '../../common/guards/auth.guard';
 import * as brandsService from './brands.service';
 
 const router = Router();
 router.use(authenticate);
+
+// Brands the current account can see (admin → all, brand manager → theirs)
+router.get('/', async (req, res) => {
+  const brands = await brandsService.getBrandsForUser(req.user!.sub, req.user!.role);
+  res.json({ success: true, data: brands });
+});
+
+// Admin creates a brand (and optionally assigns an owner by phone)
+router.post('/', requireRole('admin'), async (req, res) => {
+  const brand = await brandsService.createBrandByAdmin(req.body);
+  res.status(201).json({ success: true, data: brand });
+});
 
 router.get('/company/:companyId', async (req, res) => {
   const brands = await brandsService.getBrandsByCompany(req.params.companyId);

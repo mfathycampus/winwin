@@ -14,6 +14,86 @@ export async function getBrandsByCompany(companyId: string) {
   });
 }
 
+const brandListInclude = {
+  campaigns: {
+    where: { status: 'ACTIVE' as const },
+    select: { id: true, title: true, spentBudget: true, totalBudget: true },
+  },
+  _count: { select: { campaigns: true } },
+};
+
+// Admin → all brands. Brand manager → only brands they manage.
+export async function getBrandsForUser(userId: string, role: string) {
+  if (role === 'admin') {
+    return prisma.brand.findMany({
+      where: { isActive: true },
+      include: brandListInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+  return prisma.brand.findMany({
+    where: { isActive: true, managers: { some: { userId } } },
+    include: brandListInclude,
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+// Fixed platform company that admin-created brands belong to (seeded).
+const PLATFORM_COMPANY_ID = 'company_winwin';
+
+// Admin creates a brand and (optionally) assigns an owner by phone.
+export async function createBrandByAdmin(data: {
+  name: string;
+  sector?: string;
+  emoji?: string;
+  color?: string;
+  monthlyBudget?: number;
+  ownerPhone?: string;
+}) {
+  // Ensure the platform company exists
+  await prisma.company.upsert({
+    where: { id: PLATFORM_COMPANY_ID },
+    update: {},
+    create: {
+      id: PLATFORM_COMPANY_ID,
+      name: 'WinWin Platform',
+      contactEmail: 'admin@winwin.sa',
+      contactPhone: '+966500000000',
+      isActive: true,
+      isApproved: true,
+    },
+  });
+
+  const brand = await prisma.brand.create({
+    data: {
+      companyId: PLATFORM_COMPANY_ID,
+      name: data.name,
+      sector: data.sector,
+      emoji: data.emoji,
+      color: data.color,
+      monthlyBudget: data.monthlyBudget ?? 0,
+      isActive: true,
+    },
+  });
+
+  // Assign an owner account (creates the user if they don't exist yet)
+  if (data.ownerPhone && data.ownerPhone.trim()) {
+    const phone = data.ownerPhone.trim();
+    let owner = await prisma.user.findUnique({ where: { phone } });
+    if (!owner) {
+      owner = await prisma.user.create({ data: { phone, name: data.name } });
+      await prisma.userCredit.create({ data: { userId: owner.id } });
+    }
+    await prisma.brandManager.upsert({
+      where: { brandId_userId: { brandId: brand.id, userId: owner.id } },
+      update: { role: 'OWNER' },
+      create: { brandId: brand.id, userId: owner.id, role: 'OWNER' },
+    });
+  }
+
+  return brand;
+}
+
 export async function getBrandDashboard(brandId: string) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

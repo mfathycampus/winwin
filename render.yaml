@@ -50,3 +50,6 @@ services:
         value: winwin_prod_refresh_secret_please_change_this_value_32chars_min
       - key: SMS_PROVIDER
         value: mock
+      # Phone numbers that get the platform ADMIN role (comma-separated).
+      - key: ADMIN_PHONES
+        value: "+966568323752"
