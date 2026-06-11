@@ -28,10 +28,10 @@ export function Sidebar() {
         <div className="flex flex-col items-center gap-1">
           <div dir="ltr" className="flex items-center justify-center">
             <span className="font-black text-2xl text-white" style={{ letterSpacing: 1 }}>WIN</span>
-            <span className="font-black text-2xl" style={{ color: '#C9922A' }}>و</span>
+            <span className="font-black text-2xl" style={{ color: '#22C55E' }}>و</span>
             <span className="font-black text-2xl text-white" style={{ letterSpacing: 1 }}>WIN</span>
           </div>
-          <p className="text-xs font-semibold" style={{ color: '#C9922A' }}>وينوين · WINWIN</p>
+          <p className="text-xs font-semibold" style={{ color: '#22C55E' }}>وينوين · WINWIN</p>
         </div>
       </div>
 

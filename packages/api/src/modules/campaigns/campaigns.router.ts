@@ -17,6 +17,12 @@ router.get('/feed', authenticate, async (req, res) => {
   res.json({ success: true, data });
 });
 
+// Dashboard list — scoped by role (admin: all, brand manager: their brands)
+router.get('/managed', authenticate, async (req, res) => {
+  const data = await campaignsService.getManagedCampaigns(req.user!.sub, req.user!.role);
+  res.json({ success: true, data });
+});
+
 router.get('/:campaignId', authenticate, async (req, res) => {
   const data = await campaignsService.getCampaignDetail(req.params.campaignId, req.user!.sub);
   res.json({ success: true, data });

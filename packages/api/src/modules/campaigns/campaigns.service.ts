@@ -102,6 +102,39 @@ export async function getHomeFeed(
   return result;
 }
 
+// Campaigns for the dashboard, scoped by role:
+// admin → all campaigns; brand manager → only their brands' campaigns.
+export async function getManagedCampaigns(userId: string, role: string) {
+  const where: any =
+    role === 'admin' ? {} : { brand: { managers: { some: { userId } } } };
+
+  const campaigns = await prisma.campaign.findMany({
+    where,
+    include: {
+      brand: { select: { name: true, emoji: true, color: true } },
+      adContent: { take: 1, select: { allowedPlatforms: true } },
+      _count: { select: { posts: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return campaigns.map((c) => ({
+    id: c.id,
+    title: c.title,
+    description: c.description,
+    status: c.status,
+    brandName: c.brand.name,
+    brandEmoji: c.brand.emoji,
+    brandColor: c.brand.color,
+    totalBudget: c.totalBudget,
+    spentBudget: c.spentBudget,
+    startDate: c.startDate,
+    endDate: c.endDate,
+    platforms: c.adContent[0]?.allowedPlatforms ?? [],
+    postsCount: c._count.posts,
+  }));
+}
+
 export async function getCampaignDetail(campaignId: string, userId: string) {
   const now = new Date();
   const [campaign, user] = await Promise.all([
