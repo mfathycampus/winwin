@@ -32,6 +32,11 @@ router.get('/:brandId/dashboard', async (req, res) => {
   res.json({ success: true, data });
 });
 
+router.get('/:brandId/campaigns', async (req, res) => {
+  const data = await brandsService.getBrandCampaigns(req.params.brandId);
+  res.json({ success: true, data });
+});
+
 router.get('/:brandId/posts', async (req, res) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 50;

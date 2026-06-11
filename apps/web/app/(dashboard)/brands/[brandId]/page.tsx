@@ -35,10 +35,8 @@ export default function BrandDashboardPage() {
   const { data: myCampaigns, refetch: refetchCampaigns } = useQuery({
     queryKey: ['brand-campaigns', brandId],
     queryFn: () =>
-      api.get('/campaigns/managed').then((r) =>
-        (r.data.data || [])
-          .filter((c: any) => c.brandId === brandId)
-          .map((c: any) => ({ id: c.id, title: c.title, brandId: c.brandId })),
+      api.get(`/brands/${brandId}/campaigns`).then((r) =>
+        (r.data.data || []).map((c: any) => ({ id: c.id, title: c.title, brandId })),
       ),
   });
 

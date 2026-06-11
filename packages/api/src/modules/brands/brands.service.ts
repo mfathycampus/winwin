@@ -22,6 +22,15 @@ const brandListInclude = {
   _count: { select: { campaigns: true } },
 };
 
+// All campaigns of a single brand (for the brand dashboard pages).
+export async function getBrandCampaigns(brandId: string) {
+  return prisma.campaign.findMany({
+    where: { brandId },
+    include: { adContent: { take: 1, select: { allowedPlatforms: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
 // Admin → all brands. Brand manager → only brands they manage.
 export async function getBrandsForUser(userId: string, role: string) {
   if (role === 'admin') {
