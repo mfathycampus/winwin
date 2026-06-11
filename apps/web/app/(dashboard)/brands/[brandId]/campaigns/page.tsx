@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../../lib/api';
+import { AddCampaignModal } from '../../../../../components/dashboard/AddCampaignModal';
 import { formatSAR, formatDate } from '../../../../../lib/utils';
 import { cn } from '../../../../../lib/utils';
 
@@ -23,10 +25,16 @@ const statusBadge: Record<string, string> = {
 
 export default function CampaignsPage() {
   const { brandId } = useParams<{ brandId: string }>();
+  const [showModal, setShowModal] = useState(false);
 
-  const { data: campaigns = [], isLoading } = useQuery({
+  const { data: campaigns = [], isLoading, refetch } = useQuery({
     queryKey: ['campaigns', brandId],
     queryFn: () => api.get(`/brands/${brandId}/campaigns`).then((r) => r.data.data),
+  });
+
+  const { data: brandName } = useQuery({
+    queryKey: ['brand-name', brandId],
+    queryFn: () => api.get(`/brands/${brandId}/dashboard`).then((r) => r.data.data?.brand?.name || 'البراند'),
   });
 
   if (isLoading) {
@@ -39,19 +47,26 @@ export default function CampaignsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-black text-gray-900">الحملات</h1>
-        <Link href={`/brands/${brandId}/campaigns/new`} className="btn-primary">
+        <button onClick={() => setShowModal(true)} className="btn-primary">
           + حملة جديدة
-        </Link>
+        </button>
       </div>
+
+      <AddCampaignModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        onCreated={() => refetch()}
+        brands={[{ id: brandId, name: brandName || 'البراند' }]}
+      />
 
       {campaigns.length === 0 ? (
         <div className="card text-center py-16">
           <div className="text-5xl mb-4">🚀</div>
           <h3 className="text-lg font-bold text-gray-900 mb-2">لا توجد حملات بعد</h3>
           <p className="text-gray-500 mb-6">أنشئ حملتك الأولى وابدأ في الحصول على منشورات حقيقية</p>
-          <Link href={`/brands/${brandId}/campaigns/new`} className="btn-primary inline-block">
+          <button onClick={() => setShowModal(true)} className="btn-primary inline-block">
             إنشاء أول حملة
-          </Link>
+          </button>
         </div>
       ) : (
         <div className="grid gap-4">

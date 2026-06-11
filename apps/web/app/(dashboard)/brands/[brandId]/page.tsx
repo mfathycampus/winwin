@@ -1,10 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import api from '../../../../lib/api';
 import { MetricCard } from '../../../../components/dashboard/MetricCard';
+import { AddCampaignModal } from '../../../../components/dashboard/AddCampaignModal';
+import { AddSessionModal } from '../../../../components/dashboard/AddSessionModal';
 import { formatSAR, formatNumber } from '../../../../lib/utils';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -20,10 +23,23 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 export default function BrandDashboardPage() {
   const { brandId } = useParams<{ brandId: string }>();
+  const [showCampaign, setShowCampaign] = useState(false);
+  const [showSession, setShowSession] = useState(false);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['brand-dashboard', brandId],
     queryFn: () => api.get(`/brands/${brandId}/dashboard`).then((r) => r.data.data),
+  });
+
+  // This brand's campaigns (for the live-session modal selector)
+  const { data: myCampaigns, refetch: refetchCampaigns } = useQuery({
+    queryKey: ['brand-campaigns', brandId],
+    queryFn: () =>
+      api.get('/campaigns/managed').then((r) =>
+        (r.data.data || [])
+          .filter((c: any) => c.brandId === brandId)
+          .map((c: any) => ({ id: c.id, title: c.title, brandId: c.brandId })),
+      ),
   });
 
   if (isLoading) {
@@ -66,14 +82,28 @@ export default function BrandDashboardPage() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Link href={`/brands/${brandId}/sessions/new`} className="btn-secondary">
+          <button onClick={() => setShowSession(true)} className="btn-secondary">
             📺 جلسة بث مباشر
-          </Link>
-          <Link href={`/brands/${brandId}/campaigns/new`} className="btn-primary">
+          </button>
+          <button onClick={() => setShowCampaign(true)} className="btn-primary">
             + حملة جديدة
-          </Link>
+          </button>
         </div>
       </div>
+
+      {/* Create modals — scoped to THIS brand */}
+      <AddCampaignModal
+        open={showCampaign}
+        onClose={() => setShowCampaign(false)}
+        onCreated={() => { refetch(); refetchCampaigns(); }}
+        brands={brand ? [{ id: brand.id, name: brand.name, emoji: brand.emoji }] : []}
+      />
+      <AddSessionModal
+        open={showSession}
+        onClose={() => setShowSession(false)}
+        onCreated={() => { refetch(); }}
+        campaigns={myCampaigns || []}
+      />
 
       {/* Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -140,7 +170,7 @@ export default function BrandDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { href: `/brands/${brandId}/campaigns`, label: 'الحملات', icon: '🚀', count: metrics?.activeCampaigns },
-          { href: `/brands/${brandId}/sessions`, label: 'الجلسات', icon: '📺', count: 2 },
+          { href: `/sessions`, label: 'الجلسات', icon: '📺', count: undefined },
           { href: `/brands/${brandId}/posts`, label: 'سجل المنشورات', icon: '📋', count: metrics?.postsThisMonth },
         ].map((item) => (
           <Link
