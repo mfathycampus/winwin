@@ -11,6 +11,12 @@ router.get('/active', async (_req, res) => {
   res.json({ success: true, data: sessions });
 });
 
+// Dashboard list — scoped by role (admin: all, brand manager: their brands)
+router.get('/managed', async (req, res) => {
+  const sessions = await sessionsService.getManagedSessions(req.user!.sub, req.user!.role);
+  res.json({ success: true, data: sessions });
+});
+
 router.get('/upcoming', async (req, res) => {
   const brandId = req.query.brandId as string | undefined;
   const sessions = await sessionsService.getUpcomingSessions(brandId);

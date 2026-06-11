@@ -123,6 +123,7 @@ export async function getManagedCampaigns(userId: string, role: string) {
     title: c.title,
     description: c.description,
     status: c.status,
+    brandId: c.brandId,
     brandName: c.brand.name,
     brandEmoji: c.brand.emoji,
     brandColor: c.brand.color,

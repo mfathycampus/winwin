@@ -35,6 +35,37 @@ export async function createSession(brandId: string, data: {
   });
 }
 
+// Dashboard list, scoped by role: admin → all sessions; brand manager → only their brands'.
+export async function getManagedSessions(userId: string, role: string) {
+  const where: any =
+    role === 'admin' ? {} : { brand: { managers: { some: { userId } } } };
+
+  const sessions = await prisma.primeSession.findMany({
+    where,
+    include: {
+      brand: { select: { name: true, emoji: true, color: true } },
+      campaign: { select: { title: true } },
+    },
+    orderBy: { startsAt: 'desc' },
+  });
+
+  return sessions.map((s) => ({
+    id: s.id,
+    brandName: s.brand.name,
+    brandEmoji: s.brand.emoji,
+    campaignTitle: s.campaign.title,
+    timeSlot: s.timeSlot,
+    startsAt: s.startsAt,
+    endsAt: s.endsAt,
+    durationMinutes: s.durationMinutes,
+    maxSeats: s.maxSeats,
+    seatsTaken: s.seatsTaken,
+    bonusBudget: s.bonusBudget,
+    bonusPerUser: s.bonusPerUser,
+    status: s.status,
+  }));
+}
+
 export async function getActiveSessions() {
   const now = new Date();
   return prisma.primeSession.findMany({
