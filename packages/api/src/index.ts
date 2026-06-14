@@ -17,6 +17,7 @@ import { campaignsRouter } from './modules/campaigns/campaigns.router';
 import { postsRouter } from './modules/posts/posts.router';
 import { sessionsRouter } from './modules/sessions/sessions.router';
 import { brandsRouter } from './modules/brands/brands.router';
+import { adminRouter } from './modules/admin/admin.router';
 
 import {
   startSessionScheduler,
@@ -68,6 +69,7 @@ app.use('/api/campaigns', campaignsRouter);
 app.use('/api/posts', postsRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/brands', brandsRouter);
+app.use('/api/admin', adminRouter);
 
 // ─── Error Handler ────────────────────────────────────────────────────────────
 app.use(errorHandler);
