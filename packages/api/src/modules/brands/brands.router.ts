@@ -28,11 +28,13 @@ router.post('/company/:companyId', async (req, res) => {
 });
 
 router.get('/:brandId/dashboard', async (req, res) => {
+  await brandsService.assertBrandAccess(req.user!.sub, req.user!.role, req.params.brandId);
   const data = await brandsService.getBrandDashboard(req.params.brandId);
   res.json({ success: true, data });
 });
 
 router.get('/:brandId/campaigns', async (req, res) => {
+  await brandsService.assertBrandAccess(req.user!.sub, req.user!.role, req.params.brandId);
   const data = await brandsService.getBrandCampaigns(req.params.brandId);
   res.json({ success: true, data });
 });
@@ -44,6 +46,7 @@ router.post('/:brandId/owner', requireRole('admin'), async (req, res) => {
 });
 
 router.get('/:brandId/posts', async (req, res) => {
+  await brandsService.assertBrandAccess(req.user!.sub, req.user!.role, req.params.brandId);
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 50;
   const filters = {

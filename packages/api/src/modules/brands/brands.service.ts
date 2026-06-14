@@ -46,6 +46,14 @@ export async function assignBrandOwner(brandId: string, ownerPhoneInput: string)
   return { brandId, ownerPhone: phone, ownerId: owner.id };
 }
 
+// Authorization guard: admins pass; otherwise the user must manage the brand.
+export async function assertBrandAccess(userId: string, role: string, brandId: string) {
+  if (role === 'admin') return;
+  if (!brandId) throw new AppError('البراند غير محدد', 400);
+  const manager = await prisma.brandManager.findFirst({ where: { brandId, userId } });
+  if (!manager) throw new AppError('ليس لديك صلاحية على هذا البراند', 403, 'FORBIDDEN');
+}
+
 // All campaigns of a single brand (for the brand dashboard pages).
 export async function getBrandCampaigns(brandId: string) {
   return prisma.campaign.findMany({

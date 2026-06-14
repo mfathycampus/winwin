@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../../common/guards/auth.guard';
 import { createSessionSchema } from '@winwin/shared';
 import * as sessionsService from './sessions.service';
+import * as brandsService from '../brands/brands.service';
 
 const router = Router();
 router.use(authenticate);
@@ -24,6 +25,7 @@ router.get('/upcoming', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
+  await brandsService.assertBrandAccess(req.user!.sub, req.user!.role, req.body.brandId);
   const data = createSessionSchema.parse(req.body);
   const session = await sessionsService.createSession(req.body.brandId, data);
   res.status(201).json({ success: true, data: session });

@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { authenticate } from '../../common/guards/auth.guard';
 import { createCampaignSchema } from '@winwin/shared';
 import * as campaignsService from './campaigns.service';
+import * as brandsService from '../brands/brands.service';
+import { prisma } from '@winwin/db';
 
 const router = Router();
 
@@ -28,17 +30,20 @@ router.get('/:campaignId', authenticate, async (req, res) => {
   res.json({ success: true, data });
 });
 
-// Brand manager: create campaign
+// Brand manager: create campaign (only on a brand they manage)
 router.post('/', authenticate, async (req, res) => {
+  await brandsService.assertBrandAccess(req.user!.sub, req.user!.role, req.body.brandId);
   const data = createCampaignSchema.parse(req.body);
   const campaign = await campaignsService.createCampaign(req.body.brandId, data);
   res.status(201).json({ success: true, data: campaign });
 });
 
 router.patch('/:campaignId/status', authenticate, async (req, res) => {
-  const { status } = req.body;
-  const campaign = await campaignsService.updateCampaignStatus(req.params.campaignId, status);
-  res.json({ success: true, data: campaign });
+  const campaign = await prisma.campaign.findUnique({ where: { id: req.params.campaignId } });
+  if (!campaign) return res.status(404).json({ success: false, message: 'الحملة غير موجودة' });
+  await brandsService.assertBrandAccess(req.user!.sub, req.user!.role, campaign.brandId);
+  const updated = await campaignsService.updateCampaignStatus(req.params.campaignId, req.body.status);
+  res.json({ success: true, data: updated });
 });
 
 export { router as campaignsRouter };
