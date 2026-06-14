@@ -30,7 +30,7 @@ export default function LoginPage() {
       setPhone(phone); setStep('otp');
     } catch (e: any) {
       if (e.code === 'ERR_NETWORK' || e.message === 'Network Error') {
-        setError('تعذّر الاتصال بالخادم — تأكد أن API يعمل على المنفذ 4000');
+        setError('الخادم يستيقظ من وضع الخمول، يرجى المحاولة بعد لحظات ⏳');
       } else {
         setError(e.response?.data?.message || e.message || 'حدث خطأ');
       }
