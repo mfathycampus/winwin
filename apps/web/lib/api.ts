@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+// Defaults to the deployed Render API so the site works even without env config.
+// For local dev, set NEXT_PUBLIC_API_URL=http://localhost:4000/api in .env.local
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://winwin-api-4poq.onrender.com/api';
 
 export const api = axios.create({
   baseURL: API_URL,
