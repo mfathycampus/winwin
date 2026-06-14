@@ -62,12 +62,12 @@ export default function LoginPage() {
               <span className="text-white font-black text-4xl" style={{ fontFamily: 'Cairo, sans-serif', letterSpacing: '2px' }}>
                 WIN
               </span>
-              <span style={{ color: '#C9922A', fontSize: '2.5rem', fontWeight: 900, lineHeight: 1 }}>و</span>
+              <span style={{ color: '#22C55E', fontSize: '2.5rem', fontWeight: 900, lineHeight: 1 }}>و</span>
               <span className="text-white font-black text-4xl" style={{ fontFamily: 'Cairo, sans-serif', letterSpacing: '2px' }}>
                 WIN
               </span>
             </div>
-            <p className="text-xs tracking-widest font-semibold mt-1" style={{ color: '#C9922A' }}>
+            <p className="text-xs tracking-widest font-semibold mt-1" style={{ color: '#22C55E' }}>
               وينوين · WINWIN
             </p>
           </div>
