@@ -211,9 +211,9 @@ export async function createCampaign(brandId: string, data: {
   await prisma.adContent.create({
     data: {
       campaignId: campaign.id,
-      mediaUrl:
-        'https://placehold.co/1080x1080/1B3A7A/FFFFFF/png?text=' +
-        encodeURIComponent(data.title),
+      // No baked-in text image (placeholders can't render Arabic → boxes).
+      // Empty → the app shows its own clean branded placeholder. Brands can upload real media later.
+      mediaUrl: '',
       captionTemplate: data.description || `شارك حملة ${brand.name} 🎯`,
       hashtags: [],
       allowedPlatforms: data.allowedPlatforms as any,
