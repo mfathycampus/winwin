@@ -49,11 +49,11 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// Stricter rate limit for OTP
+// Rate limit for OTP — lenient enough for normal use, still blocks abuse
 const otpLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000,
-  max: 5,
-  message: { success: false, message: 'محاولات كثيرة جداً لإرسال OTP' },
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  message: { success: false, message: 'محاولات كثيرة جداً، يرجى المحاولة بعد قليل' },
 });
 app.use('/api/auth/otp', otpLimiter);
 
