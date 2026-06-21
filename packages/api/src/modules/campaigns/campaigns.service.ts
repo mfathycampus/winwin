@@ -43,7 +43,7 @@ export async function getHomeFeed(
   const campaigns = await prisma.campaign.findMany({
     where,
     include: {
-      brand: { select: { name: true, logoUrl: true, color: true, emoji: true } },
+      brand: { select: { name: true, logoUrl: true, color: true, emoji: true, sector: true } },
       adContent: { take: 1, orderBy: { createdAt: 'desc' } },
       primeSessions: {
         where: { status: 'ACTIVE', endsAt: { gt: now } },
@@ -84,6 +84,8 @@ export async function getHomeFeed(
       brandLogo: campaign.brand.logoUrl,
       brandColor: campaign.brand.color,
       brandEmoji: campaign.brand.emoji,
+      sector: campaign.brand.sector,
+      platforms: campaign.adContent[0]?.allowedPlatforms ?? [],
       mediaUrl: campaign.adContent[0]?.mediaUrl,
       estimatedCredit: creditBreakdown?.total ?? 0,
       creditBreakdown,
