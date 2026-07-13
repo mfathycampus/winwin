@@ -11,8 +11,9 @@ databases:
 
 services:
   # ─── Redis (Key Value) ───────────────────────────────────────────────
+  # Keep the existing Redis (only Postgres expired; Render allows just 1 free Key Value)
   - type: keyvalue
-    name: winwin-redis-v2
+    name: winwin-redis
     plan: free
     ipAllowList: [] # internal access only
 
@@ -42,7 +43,7 @@ services:
       - key: REDIS_URL
         fromService:
           type: keyvalue
-          name: winwin-redis-v2
+          name: winwin-redis
           property: connectionString
       - key: JWT_SECRET
         value: winwin_prod_jwt_secret_please_change_this_value_32chars_min
