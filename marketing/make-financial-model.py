@@ -33,7 +33,7 @@ def label(ws, cell, text, bold=False, color=BLACK, size=11, fill=None, align='ri
 def num(ws, cell, value, fmt=MONEY, color=BLACK, bold=False, fill=None):
     c = ws[cell]; c.value = value
     c.font = Font(name=F, bold=bold, color=color, size=11)
-    c.number_format = fmt
+    c.number_format = fmt if fmt else '#,##0'
     c.alignment = Alignment(horizontal='center', vertical='center')
     if fill: c.fill = fill
     return c
@@ -220,6 +220,108 @@ for r,(name,src) in cfmap.items():
 # Fix IRR row25 to use the helper CF range
 for col in 'BCD':
     se[f'{col}25'].value = f'=IFERROR(IRR({col}28:{col}33),"غير محقق")'
+
+# ═════════════ Add 4th scenario (أسوأ حالة) to الحساسية ═════════════
+se.column_dimensions['E'].width = 17
+se['E4'].value = 'أسوأ حالة'; se['E4'].font = Font(name=F, bold=True, color='FFFFFF'); se['E4'].fill = HEADFILL
+se['E4'].border = BORDER; se['E4'].alignment = Alignment(horizontal='center', vertical='center', readingOrder=2)
+num(se, 'E5', 0.4, '0.0x', BLUE, fill=YELLOW)
+num(se, 'E6', '=الفرضيات!$B$7')
+for row,(name,grow,prev) in gyears.items():
+    num(se, f'E{row}', f'=E{prev}*(1+الفرضيات!${grow[0]}${grow[1:]}*E$5)')
+for r_off,gr in zip(range(12,17), range(6,11)):
+    num(se, f'E{r_off}', f'=E{gr}*الفرضيات!$B$17', MONEY, GREEN)
+for r,ccol in costcols.items():
+    yr=r-17; num(se, f'E{r}', f'=E{11+yr}-الفرضيات!${ccol}$30', MONEY, bold=True)
+num(se, 'E24', '=-الفرضيات!$B$21+NPV(الفرضيات!$B$22,0,0,E20,E21,E22)', MONEY, NAVY, bold=True, fill=TOTALFILL)
+for r,(name,src) in cfmap.items():
+    if src is None: num(se, f'E{r}', '=-الفرضيات!$B$21', MONEY, color='777777')
+    elif src=='0': num(se, f'E{r}', 0, MONEY, color='777777')
+    else: num(se, f'E{r}', f'=E{src}', MONEY, color='777777')
+num(se, 'E25', '=IFERROR(IRR(E28:E33),"غير محقق")', PCT, NAVY, bold=True, fill=TOTALFILL)
+
+# ═════════════ Sheet 5: الاقتصاد الوحدوي (Unit Economics) ═════════════
+ue = wb.create_sheet('الاقتصاد الوحدوي'); style(ue)
+ue.column_dimensions['A'].width = 42
+for col in 'BC': ue.column_dimensions[col].width = 18
+label(ue, 'A1', 'الاقتصاد الوحدوي (Unit Economics)', bold=True, color=NAVY, size=15)
+label(ue, 'A2', 'يوضّح ربحية اكتساب كل مستخدم وكل براند — أساس قابلية التوسّع', color='777777', size=9)
+header_row(ue, 4, ['A','B','C'], ['المؤشر', 'المستخدم', 'البراند'])
+label(ue, 'A5', 'عدد الوحدات — السنة 1'); num(ue,'B5',20000,'#,##0',BLUE,fill=YELLOW); num(ue,'C5','=الفرضيات!B5',None,GREENTXT)
+label(ue, 'A6', 'تكلفة الاكتساب CAC (ريال)'); num(ue,'B6',20,MONEY,BLUE,fill=YELLOW); num(ue,'C6',1000,MONEY,BLUE,fill=YELLOW)
+ue['B6'].comment = Comment('نمو عضوي + إحالة → تكلفة منخفضة', 'WINوWIN'); ue['C6'].comment=Comment('جهد مبيعات مباشر','WINوWIN')
+label(ue, 'A7', 'إيراد المنصة لكل وحدة سنوياً (ريال)')
+num(ue,'B7','=النموذج!B5/B5', MONEY, GREEN)   # revenue Y1 / users
+num(ue,'C7','=الفرضيات!B6*الفرضيات!B17', MONEY, GREEN)  # brand spend * take
+label(ue, 'A8', 'متوسط بقاء الوحدة (سنوات)'); num(ue,'B8',2.5,'0.0',BLUE,fill=YELLOW); num(ue,'C8',3.0,'0.0',BLUE,fill=YELLOW)
+label(ue, 'A9', 'هامش المساهمة'); num(ue,'B9',0.75,PCT,BLUE,fill=YELLOW); num(ue,'C9',0.75,PCT,BLUE,fill=YELLOW)
+label(ue, 'A10', 'القيمة الدائمة LTV (ريال)', bold=True)
+num(ue,'B10','=B7*B8*B9', MONEY, NAVY, bold=True, fill=SUBFILL)
+num(ue,'C10','=C7*C8*C9', MONEY, NAVY, bold=True, fill=SUBFILL)
+label(ue, 'A11', 'نسبة LTV/CAC', bold=True)
+num(ue,'B11','=B10/B6', MULT, NAVY, bold=True); num(ue,'C11','=C10/C6', MULT, NAVY, bold=True)
+ue['B12'] = None
+label(ue, 'A13', 'قاعدة إبهام: LTV/CAC ≥ 3x تعني اكتساباً صحياً وقابلاً للتوسّع.', color='777777', size=9)
+label(ue, 'A14', 'البراندات هي محرّك الربح الأساسي؛ المستخدمون يُكتسبون بتكلفة منخفضة لتغذية الشبكة.', color=NAVY, size=10, bold=True)
+
+# ═════════════ Sheet 6: التوقعات الشهرية (24 شهراً) ═════════════
+mo = wb.create_sheet('التوقعات الشهرية'); style(mo)
+mo.column_dimensions['A'].width = 12
+for col in 'BCDEF': mo.column_dimensions[col].width = 16
+label(mo, 'A1', 'التوقعات الشهرية — أول 24 شهراً', bold=True, color=NAVY, size=15)
+label(mo, 'A2', 'مبنية على منحنى تصاعدي يوازي إجمالي السنة؛ الرصيد الافتتاحي = الاستثمار − التأسيس', color='777777', size=9)
+# opening cash cell
+label(mo, 'A3', 'الرصيد النقدي الافتتاحي'); num(mo,'B3','=الفرضيات!B21-الفرضيات!B20', MONEY, NAVY, bold=True, fill=YELLOW)
+header_row(mo, 5, ['A','B','C','D','E','F'], ['الشهر','GMV','الإيراد','المصاريف','الصافي','الرصيد النقدي'])
+# months 1..24 as rows 6..29. weight ramp: m/78 within each year
+for i in range(1,25):
+    r = 5+i
+    label(mo, f'A{r}', f'شهر {i}', align='center')
+    if i<=12:
+        gmv_f = f'=النموذج!$B$4*({i}/78)'; opex_f = '=الفرضيات!$B$30/12'
+    else:
+        gmv_f = f'=النموذج!$C$4*({i-12}/78)'; opex_f = '=الفرضيات!$C$30/12'
+    num(mo, f'B{r}', gmv_f)
+    num(mo, f'C{r}', f'=B{r}*الفرضيات!$B$17', MONEY, GREEN)
+    num(mo, f'D{r}', opex_f)
+    num(mo, f'E{r}', f'=C{r}-D{r}', MONEY, bold=True)
+    prev = 'B3' if i==1 else f'F{r-1}'
+    num(mo, f'F{r}', f'={prev}+E{r}', MONEY, NAVY, bold=True)
+# summary
+label(mo, 'A31', 'أدنى رصيد نقدي خلال 24 شهراً'); num(mo,'B31','=MIN(F6:F29)', MONEY, NAVY, bold=True)
+label(mo, 'A32', 'متوسط الحرق الشهري — السنة 1 (Burn)'); num(mo,'B32','=AVERAGE(E6:E17)', '#,##0;(#,##0)', BLACK, True)
+label(mo, 'A33', 'الرصيد النقدي بنهاية الشهر 24'); num(mo,'B33','=F29', MONEY, NAVY, bold=True)
+label(mo, 'A34', 'ملاحظة: بقاء أدنى رصيد موجباً = كفاية الاستثمار حتى الوصول للربحية.', color='777777', size=9)
+
+# ═════════════ Sheet 7: التمويل والعائد ═════════════
+fu = wb.create_sheet('التمويل والعائد'); style(fu)
+fu.column_dimensions['A'].width = 40
+for col in 'BC': fu.column_dimensions[col].width = 18
+label(fu, 'A1', 'خطة استخدام التمويل والعائد للمستثمر', bold=True, color=NAVY, size=15)
+label(fu, 'A2', 'أرقام التقييم والعائد استرشادية وقابلة للتفاوض', color='777777', size=9)
+label(fu, 'A4', 'أولاً: استخدام التمويل (1.2 مليون ريال)', bold=True, color=GREEN, size=12, fill=SUBFILL); fu['B4'].fill=SUBFILL
+header_row(fu, 5, ['A','B','C'], ['البند','النسبة','المبلغ (ريال)'])
+uses = [('التسويق والنمو',0.40),('الرواتب والفريق',0.40),('التقنية والبنية والـ SMS',0.08),('قانوني وتراخيص وإداري',0.10),('احتياطي نقدي',0.02)]
+r=6
+for name,pct in uses:
+    label(fu,f'A{r}',name); num(fu,f'B{r}',pct,PCT,BLUE,fill=YELLOW); num(fu,f'C{r}',f'=B{r}*الفرضيات!$B$21', MONEY); r+=1
+label(fu,f'A{r}','الإجمالي', bold=True, fill=TOTALFILL); num(fu,f'B{r}',f'=SUM(B6:B{r-1})',PCT,bold=True,fill=TOTALFILL); num(fu,f'C{r}',f'=SUM(C6:C{r-1})',MONEY,bold=True,fill=TOTALFILL)
+
+label(fu, 'A13', 'ثانياً: شروط الاستثمار (استرشادي)', bold=True, color=GREEN, size=12, fill=SUBFILL); fu['B13'].fill=SUBFILL
+label(fu,'A14','مبلغ الجولة'); num(fu,'B14','=الفرضيات!B21', MONEY, GREENTXT)
+label(fu,'A15','حصة المستثمر'); num(fu,'B15',0.22,PCT,BLUE,fill=YELLOW)
+label(fu,'A16','التقييم بعد الجولة (Post-money)'); num(fu,'B16','=B14/B15', MONEY, NAVY, bold=True)
+label(fu,'A17','التقييم قبل الجولة (Pre-money)'); num(fu,'B17','=B16-B14', MONEY, NAVY, bold=True)
+label(fu,'A18','حصة المؤسسين'); num(fu,'B18','=1-B15',PCT,bold=True)
+
+label(fu, 'A20', 'ثالثاً: تقدير العائد عند الخروج (السنة 5)', bold=True, color=GREEN, size=12, fill=SUBFILL); fu['B20'].fill=SUBFILL
+label(fu,'A21','مضاعف التقييم على الإيراد (Revenue Multiple)'); num(fu,'B21',5,MULT,BLUE,fill=YELLOW)
+label(fu,'A22','إيراد السنة 5'); num(fu,'B22','=النموذج!F5', MONEY, GREENTXT)
+label(fu,'A23','قيمة الشركة عند الخروج'); num(fu,'B23','=B21*B22', MONEY, NAVY, bold=True)
+label(fu,'A24','حصة المستثمر عند الخروج'); num(fu,'B24','=B23*B15', MONEY, NAVY, bold=True)
+label(fu,'A25','مضاعف رأس المال MOIC'); num(fu,'B25','=B24/B14', MULT, NAVY, bold=True)
+label(fu,'A26','معدل العائد السنوي التقريبي على 5 سنوات'); num(fu,'B26','=(B24/B14)^(1/5)-1', PCT, NAVY, bold=True)
+label(fu, 'A28', 'خطة الخروج: استحواذ استراتيجي (مجموعات إعلام/تسويق أو منصة إقليمية)، أو بيع حصص، أو إدراج مستقبلي في السوق الموازية (نمو). الأفق 5–7 سنوات.', color=NAVY, size=10, bold=True)
 
 # Force Excel to recalculate all formulas when the file is opened
 try:
